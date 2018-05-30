@@ -48,11 +48,6 @@ public class FindBookActivity extends MBaseActivity<IFindBookPresenter> implemen
     }
 
     @Override
-    protected void firstRequest() {
-
-    }
-
-    @Override
     protected void initData() {
 
     }
@@ -138,11 +133,6 @@ public class FindBookActivity extends MBaseActivity<IFindBookPresenter> implemen
                 return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void bindEvent() {
-
     }
 
     @Override

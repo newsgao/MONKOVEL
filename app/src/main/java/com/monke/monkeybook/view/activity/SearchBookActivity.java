@@ -19,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.monke.monkeybook.R;
 import com.monke.monkeybook.base.MBaseActivity;
 import com.monke.monkeybook.bean.SearchBookBean;
@@ -82,7 +83,7 @@ public class SearchBookActivity extends MBaseActivity<ISearchBookPresenter> impl
     protected void initData() {
         explosionField = ExplosionField.attach2Window(this);
         searchHistoryAdapter = new SearchHistoryAdapter();
-        searchBookAdapter = new SearchBookAdapter();
+        searchBookAdapter = new SearchBookAdapter(this);
     }
 
     @SuppressLint("InflateParams")
@@ -239,7 +240,9 @@ public class SearchBookActivity extends MBaseActivity<ISearchBookPresenter> impl
         openOrCloseHistory(showHishtory);
     }
 
-    //开始搜索
+    /**
+     * 开始搜索
+     */
     private void toSearch() {
         if (searchView.getQuery().toString().trim().length() > 0) {
             final String key = searchView.getQuery().toString().trim();

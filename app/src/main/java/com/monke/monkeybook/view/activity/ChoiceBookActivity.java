@@ -48,8 +48,18 @@ public class ChoiceBookActivity extends MBaseActivity<IChoiceBookPresenter> impl
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
     protected void initData() {
-        searchBookAdapter = new ChoiceBookAdapter();
+        searchBookAdapter = new ChoiceBookAdapter(this);
     }
 
     @SuppressLint("InflateParams")

@@ -28,7 +28,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -122,9 +121,9 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
         bookPx = preferences.getString(getString(R.string.pk_bookshelf_px), "0");
         viewIsList = preferences.getBoolean("bookshelfIsList", true);
         if (viewIsList) {
-            bookShelfListAdapter = new BookShelfListAdapter();
+            bookShelfListAdapter = new BookShelfListAdapter(this);
         } else {
-            bookShelfGridAdapter = new BookShelfGridAdapter();
+            bookShelfGridAdapter = new BookShelfGridAdapter(this);
         }
     }
 
@@ -298,9 +297,7 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
         Menu drawerMenu = navigationView.getMenu();
         swNightTheme = drawerMenu.findItem(R.id.action_night_theme).getActionView().findViewById(R.id.sw_night_theme);
         swNightTheme.setChecked(preferences.getBoolean("nightTheme", false));
-        swNightTheme.setOnCheckedChangeListener((compoundButton, b) -> {
-            saveNightTheme(b);
-        });
+        swNightTheme.setOnCheckedChangeListener((compoundButton, b) -> saveNightTheme(b));
         navigationView.setNavigationItemSelectedListener(menuItem -> {
             switch (menuItem.getItemId()) {
                 case R.id.action_book_source_manage:

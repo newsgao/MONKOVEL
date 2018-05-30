@@ -299,4 +299,5 @@ public class BookDetailActivity extends MBaseActivity<IBookDetailPresenter> impl
             mPresenter.getBookShelfInfo();
         });
     }
+
 }
