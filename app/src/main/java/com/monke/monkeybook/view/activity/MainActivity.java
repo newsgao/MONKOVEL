@@ -18,7 +18,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.Toolbar;
@@ -50,7 +49,6 @@ import com.monke.monkeybook.view.adapter.BookShelfGridAdapter;
 import com.monke.monkeybook.view.adapter.BookShelfListAdapter;
 import com.monke.monkeybook.view.fragment.SettingsFragment;
 import com.monke.monkeybook.view.impl.IMainView;
-import com.monke.monkeybook.view.popupwindow.DownloadListPop;
 import com.monke.monkeybook.widget.modialog.MoProgressHUD;
 import com.monke.monkeybook.widget.refreshview.OnRefreshWithProgressListener;
 import com.monke.monkeybook.widget.refreshview.RefreshRecyclerView;
@@ -87,7 +85,6 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
     private BookShelfListAdapter bookShelfListAdapter;
     private boolean viewIsList;
     private ActionBarDrawerToggle mDrawerToggle;
-    private DownloadListPop downloadListPop;
     private MoProgressHUD moProgressHUD;
     private String[] perms = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
     private long exitTime = 0;
@@ -139,7 +136,6 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
         setupActionBar();
         initDrawer();
         moProgressHUD = new MoProgressHUD(this);
-        downloadListPop = new DownloadListPop(MainActivity.this);
 
         if (viewIsList) {
             rfRvShelf.setRefreshRecyclerViewAdapter(bookShelfListAdapter, new LinearLayoutManager(this));
@@ -154,7 +150,7 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
         // 这个必须要，没有的话进去的默认是个箭头。。正常应该是三横杠的
         mDrawerToggle.syncState();
         if (swNightTheme != null) {
-            swNightTheme.setChecked(preferences.getBoolean("nightTheme", false));
+            swNightTheme.setChecked(isNightTheme());
         }
     }
 
@@ -213,7 +209,10 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
         return super.onCreateOptionsMenu(menu);
     }
 
-    //菜单
+
+    /**
+     * 菜单事件
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         SharedPreferences.Editor editor = preferences.edit();
@@ -235,13 +234,12 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
                     EasyPermissions.requestPermissions(this, getString(R.string.import_book_source),
                             FILESELECT_RESULT, perms);
                 }
-                //startActivityByAnim(new Intent(MainActivity.this, ImportBookActivity.class), 0, 0);
                 break;
             case R.id.action_add_url:
                 moProgressHUD.showInputBox("添加书籍网址", null, inputText -> mPresenter.addBookUrl(inputText));
                 break;
             case R.id.action_download:
-                downloadListPop.showAsDropDown(toolbar);
+                startActivity(new Intent(this, DownloadActivity.class));
                 break;
             case R.id.action_download_all:
                 mPresenter.downloadAll();
@@ -296,8 +294,12 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
         navigationView.addHeaderView(headerView);
         Menu drawerMenu = navigationView.getMenu();
         swNightTheme = drawerMenu.findItem(R.id.action_night_theme).getActionView().findViewById(R.id.sw_night_theme);
-        swNightTheme.setChecked(preferences.getBoolean("nightTheme", false));
-        swNightTheme.setOnCheckedChangeListener((compoundButton, b) -> saveNightTheme(b));
+        swNightTheme.setChecked(isNightTheme());
+        swNightTheme.setOnCheckedChangeListener((compoundButton, b) -> {
+            if (compoundButton.isPressed()) {
+                setNightTheme(b);
+            }
+        });
         navigationView.setNavigationItemSelectedListener(menuItem -> {
             switch (menuItem.getItemId()) {
                 case R.id.action_book_source_manage:
@@ -322,24 +324,13 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
                     restore();
                     break;
                 case R.id.action_night_theme:
-                    swNightTheme.setChecked(!swNightTheme.isChecked());
+                    swNightTheme.setChecked(!isNightTheme());
+                    setNightTheme(!isNightTheme());
                     break;
             }
             drawer.closeDrawers();
             return true;
         });
-    }
-
-    private void saveNightTheme(Boolean isNightTheme) {
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("nightTheme", isNightTheme);
-        editor.apply();
-        if (isNightTheme) {
-            getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-        } else {
-            getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-        }
-        recreate();
     }
 
     //备份
@@ -516,7 +507,6 @@ public class MainActivity extends MBaseActivity<IMainPresenter> implements IMain
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        downloadListPop.onDestroy();
         unregisterReceiver(immersionReceiver);
     }
 

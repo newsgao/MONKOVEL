@@ -155,7 +155,6 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
 
     private boolean aloudButton;
     private boolean hideStatusBar;
-    private boolean isBind;
     private String noteUrl;
     private Boolean isAdd = false; //判断是否已经添加进书架
     private int aloudStatus;
@@ -341,7 +340,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         ivInterface.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
         ivSetting.getDrawable().mutate();
         ivSetting.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
-        if (preferences.getBoolean("nightTheme", false)) {
+        if (isNightTheme()) {
             ibNightTheme.setImageResource(R.drawable.ic_daytime_24dp);
         } else {
             ibNightTheme.setImageResource(R.drawable.ic_brightness_2_black_24dp_new);
@@ -529,12 +528,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         //夜间模式
         ibNightTheme.getDrawable().mutate();
         ibNightTheme.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
-        ibNightTheme.setOnClickListener(view -> {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean("nightTheme", !preferences.getBoolean("nightTheme", false));
-            editor.apply();
-            setNightTheme();
-        });
+        ibNightTheme.setOnClickListener(view -> setNightTheme(!isNightTheme()));
 
         //上一章
         tvPre.setOnClickListener(view -> {
@@ -742,9 +736,10 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
                     @Override
                     public void stopService() {
                         csvBook.readAloudStop();
-                        if (isBind) {
+                        try {
                             unbindService(conn);
-                            isBind = false;
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
 
@@ -884,23 +879,32 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     }
 
     /**
-     * 是否加入书架
+     * 检查是否加入书架
      */
-    public void initCheckAddShelfPop() {
-        checkAddShelfPop = new CheckAddShelfPop(this, mPresenter.getBookShelf().getBookInfoBean().getName(),
-                new CheckAddShelfPop.OnItemClickListener() {
-                    @Override
-                    public void clickExit() {
-                        mPresenter.removeFromShelf();
-                    }
+    public boolean checkAddShelf() {
+        if (isAdd) {
+            return true;
+        } else {
+            if (checkAddShelfPop == null) {
+                checkAddShelfPop = new CheckAddShelfPop(this, mPresenter.getBookShelf().getBookInfoBean().getName(),
+                        new CheckAddShelfPop.OnItemClickListener() {
+                            @Override
+                            public void clickExit() {
+                                mPresenter.removeFromShelf();
+                            }
 
-                    @Override
-                    public void clickAddShelf() {
-                        mPresenter.addToShelf(null);
-                        checkAddShelfPop.dismiss();
-                    }
-                });
-        initChapterList();
+                            @Override
+                            public void clickAddShelf() {
+                                mPresenter.addToShelf(null);
+                                checkAddShelfPop.dismiss();
+                            }
+                        });
+            }
+            if (!checkAddShelfPop.isShowing()) {
+                checkAddShelfPop.showAtLocation(flContent, Gravity.CENTER, 0, 0);
+            }
+            return false;
+        }
     }
 
     @Override
@@ -1058,7 +1062,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
                 if (mPresenter.getBookShelf() != null) {
                     aloudButton = true;
                     csvBook.readAloudStart();
-                    isBind = ReadBookActivity.this.bindService(readAloudIntent, conn, Context.BIND_AUTO_CREATE);
+                    ReadBookActivity.this.bindService(readAloudIntent, conn, Context.BIND_AUTO_CREATE);
                 }
         }
     }
@@ -1136,13 +1140,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
      */
     @Override
     public void finish() {
-        if (!isAdd) {
-            if (checkAddShelfPop == null) {
-                initCheckAddShelfPop();
-            }
-            if (!checkAddShelfPop.isShowing()) {
-                checkAddShelfPop.showAtLocation(flContent, Gravity.CENTER, 0, 0);
-            }
+        if (!checkAddShelf()) {
             return;
         }
         if (!AppActivityManager.getInstance().isExist(MainActivity.class)) {
