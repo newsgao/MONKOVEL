@@ -3,13 +3,8 @@ package com.monke.monkeybook.view.popupwindow;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.ContentResolver;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.Matrix;
-import android.net.Uri;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,14 +13,11 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.flask.colorpicker.ColorPickerView;
-import com.flask.colorpicker.builder.ColorPickerDialogBuilder;
 import com.monke.monkeybook.R;
-import com.monke.monkeybook.help.ACache;
 import com.monke.monkeybook.help.ReadBookControl;
+import com.monke.monkeybook.utils.barUtil.ImmersionBar;
 import com.monke.monkeybook.view.activity.ReadBookActivity;
-
-import java.io.IOException;
+import com.monke.monkeybook.view.activity.ReadStyleActivity;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -40,8 +32,12 @@ public class ReadInterfacePop extends PopupWindow {
     TextView tvDurLineSize;//行间距数字
     @BindView(R.id.fl_line_bigger)
     TextView flLineBigger;//行间距大
-    @BindView(R.id.fl_text_convert)
-    TextView flTextConvert;
+    @BindView(R.id.tv_convert_j)
+    TextView tvConvertJ;
+    @BindView(R.id.tv_convert_o)
+    TextView tvConvertO;
+    @BindView(R.id.tv_convert_f)
+    TextView tvConvertF;
     @BindView(R.id.fl_text_Bold)
     TextView flTextBold;
     @BindView(R.id.fl_text_smaller)
@@ -64,15 +60,19 @@ public class ReadInterfacePop extends PopupWindow {
     @BindView(R.id.civ_bg_blue)
     CircleImageView civBgBlue;
 
-    @BindView(R.id.civ_bg_custom)
-    TextView civBgCustom;
-    @BindView(R.id.civ_text_color)
-    TextView civTextColor;
-    @BindView(R.id.tv_background_color)
-    TextView tvBackgroundColor;
+    @BindView(R.id.tv0)
+    TextView tv0;
+    @BindView(R.id.tv1)
+    TextView tv1;
+    @BindView(R.id.tv2)
+    TextView tv2;
+    @BindView(R.id.tv3)
+    TextView tv3;
+    @BindView(R.id.tv4)
+    TextView tv4;
 
     private ReadBookActivity activity;
-    private ReadBookControl readBookControl;
+    private ReadBookControl readBookControl = ReadBookControl.getInstance();
 
     public static final int RESULT_CHOOSEFONT_PERMS = 106;
 
@@ -100,6 +100,7 @@ public class ReadInterfacePop extends PopupWindow {
         this.changeProListener = changeProListener;
 
         View view = LayoutInflater.from(readBookActivity).inflate(R.layout.view_pop_read_interface, null);
+        ImmersionBar.navigationBarPadding(activity, view);
         this.setContentView(view);
         ButterKnife.bind(this, view);
         initData();
@@ -108,17 +109,19 @@ public class ReadInterfacePop extends PopupWindow {
         setBackgroundDrawable(readBookActivity.getResources().getDrawable(R.drawable.shape_pop_checkaddshelf_bg));
         setFocusable(true);
         setTouchable(true);
+        setClippingEnabled(false);
         setAnimationStyle(R.style.anim_pop_windowlight);
     }
 
     private void initData() {
-        readBookControl = ReadBookControl.getInstance();
+        setBg();
         updateText(readBookControl.getTextKindIndex());
         updateBg(readBookControl.getTextDrawableIndex());
         updateLineSize(readBookControl.getLineMultiplier());
         updateBoldText(readBookControl.getTextBold());
         updateConvertText(readBookControl.getTextConvert());
         //upTextColor(readBookControl.getTextColorCustom());
+
     }
 
     private void bindEvent() {
@@ -140,8 +143,18 @@ public class ReadInterfacePop extends PopupWindow {
         });
 
         //繁简切换
-        flTextConvert.setOnClickListener(v -> {
-            readBookControl.setTextConvert(!readBookControl.getTextConvert());
+        tvConvertF.setOnClickListener(view -> {
+            readBookControl.setTextConvert(-1);
+            updateConvertText(readBookControl.getTextConvert());
+            changeProListener.setConvert();
+        });
+        tvConvertO.setOnClickListener(view -> {
+            readBookControl.setTextConvert(0);
+            updateConvertText(readBookControl.getTextConvert());
+            changeProListener.setConvert();
+        });
+        tvConvertJ.setOnClickListener(view -> {
+            readBookControl.setTextConvert(1);
             updateConvertText(readBookControl.getTextConvert());
             changeProListener.setConvert();
         });
@@ -151,26 +164,6 @@ public class ReadInterfacePop extends PopupWindow {
             updateBoldText(readBookControl.getTextBold());
             changeProListener.setBold();
         });
-        tvBackgroundColor.setOnClickListener(view1 -> ColorPickerDialogBuilder
-                .with(activity)
-                .setTitle("选择背景颜色")
-                .initialColor(readBookControl.getBackgroundColorCustom())
-                .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
-                .density(12)
-                .setOnColorSelectedListener(selectedColor -> {
-
-                })
-                .setPositiveButton("ok", (dialog, selectedColor, allColors) -> {
-                    updateBg(-1);
-                    readBookControl.setBackgroundColorCustom(selectedColor);
-                    readBookControl.setBackgroundIsColor(true);
-                    changeProListener.bgChange();
-                })
-                .setNegativeButton("cancel", (dialog, which) -> {
-
-                })
-                .build()
-                .show());
 
         civBgWhite.setOnClickListener(v -> {
             updateBg(0);
@@ -193,10 +186,39 @@ public class ReadInterfacePop extends PopupWindow {
             updateBg(4);
             changeProListener.bgChange();
         });
-        //选择字体
-        fl_text_font.setOnClickListener(view -> {
-            chooseReadBookFont();
+        civBgWhite.setOnLongClickListener(view -> {
+            Intent intent = new Intent(activity, ReadStyleActivity.class);
+            intent.putExtra("index", 0);
+            activity.startActivityForResult(intent, activity.ResultStyleSet);
+            return false;
         });
+        civBgYellow.setOnLongClickListener(view -> {
+            Intent intent = new Intent(activity, ReadStyleActivity.class);
+            intent.putExtra("index", 1);
+            activity.startActivityForResult(intent, activity.ResultStyleSet);
+            return false;
+        });
+        civBgGreen.setOnLongClickListener(view -> {
+            Intent intent = new Intent(activity, ReadStyleActivity.class);
+            intent.putExtra("index", 2);
+            activity.startActivityForResult(intent, activity.ResultStyleSet);
+            return false;
+        });
+        civBgBlue.setOnLongClickListener(view -> {
+            Intent intent = new Intent(activity, ReadStyleActivity.class);
+            intent.putExtra("index", 3);
+            activity.startActivityForResult(intent, activity.ResultStyleSet);
+            return false;
+        });
+        civBgBlack.setOnLongClickListener(view -> {
+            Intent intent = new Intent(activity, ReadStyleActivity.class);
+            intent.putExtra("index", 4);
+            activity.startActivityForResult(intent, activity.ResultStyleSet);
+            return false;
+        });
+
+        //选择字体
+        fl_text_font.setOnClickListener(view -> chooseReadBookFont());
         //长按清除字体
         fl_text_font.setOnLongClickListener(view -> {
             clearFontPath();
@@ -204,31 +226,6 @@ public class ReadInterfacePop extends PopupWindow {
             return true;
         });
 
-        civBgCustom.setOnClickListener(view -> {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("image/*");
-            activity.startActivityForResult(intent, activity.ResultSelectBg);
-        });
-        civTextColor.setOnClickListener(view -> ColorPickerDialogBuilder
-                .with(activity)
-                .setTitle("选择文字颜色")
-                .initialColor(readBookControl.getTextColorCustom())
-                .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
-                .density(12)
-                .setOnColorSelectedListener(selectedColor -> {
-
-                })
-                .setPositiveButton("ok", (dialog, selectedColor, allColors) -> {
-                    readBookControl.setTextColorCustom(selectedColor);
-                    //upTextColor(selectedColor);
-                    changeProListener.bgChange();
-                })
-                .setNegativeButton("cancel", (dialog, which) -> {
-
-                })
-                .build()
-                .show());
     }
 
     private void chooseReadBookFont() {
@@ -240,35 +237,6 @@ public class ReadInterfacePop extends PopupWindow {
         } else {
             EasyPermissions.requestPermissions(activity, "选择字体",
                     RESULT_CHOOSEFONT_PERMS, perms);
-        }
-    }
-
-    /**
-     * 自定义背景
-     */
-    public void setCustomBg(Uri uri) {
-        ContentResolver cr = activity.getContentResolver();
-        try {
-            Bitmap bitmap = MediaStore.Images.Media.getBitmap(cr, uri);
-            bitmap = getSmallerBitmap(bitmap);
-            ACache aCache = ACache.get(activity);
-            aCache.put("customBg", bitmap);
-            updateBg(-1);
-            readBookControl.setBackgroundIsColor(false);
-            changeProListener.bgChange();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(activity, e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private Bitmap getSmallerBitmap(Bitmap bitmap) {
-        int size = bitmap.getWidth() * bitmap.getHeight() / 360000;
-        if (size <= 1) return bitmap; // 如果小于
-        else {
-            Matrix matrix = new Matrix();
-            matrix.postScale((float) (1 / Math.sqrt(size)), (float) (1 / Math.sqrt(size)));
-            return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
         }
     }
 
@@ -311,12 +279,8 @@ public class ReadInterfacePop extends PopupWindow {
         readBookControl.setLineMultiplier(lineSize);
     }
 
-    private void updateConvertText(Boolean convent) {
-        if (convent) {
-            flTextConvert.setText("简");
-        } else {
-            flTextConvert.setText("繁");
-        }
+    private void updateConvertText(int convent) {
+
     }
 
     private void updateBoldText(Boolean convent) {
@@ -325,6 +289,19 @@ public class ReadInterfacePop extends PopupWindow {
         } else {
             flTextBold.setText("粗");
         }
+    }
+
+    public void setBg() {
+        tv0.setTextColor(readBookControl.getTextColor(0));
+        tv1.setTextColor(readBookControl.getTextColor(1));
+        tv2.setTextColor(readBookControl.getTextColor(2));
+        tv3.setTextColor(readBookControl.getTextColor(3));
+        tv4.setTextColor(readBookControl.getTextColor(4));
+        civBgWhite.setImageDrawable(readBookControl.getBgDrawable(0, activity));
+        civBgYellow.setImageDrawable(readBookControl.getBgDrawable(1, activity));
+        civBgGreen.setImageDrawable(readBookControl.getBgDrawable(2, activity));
+        civBgBlue.setImageDrawable(readBookControl.getBgDrawable(3, activity));
+        civBgBlack.setImageDrawable(readBookControl.getBgDrawable(4, activity));
     }
 
     private void updateBg(int index) {
@@ -349,9 +326,6 @@ public class ReadInterfacePop extends PopupWindow {
             case 4:
                 civBgBlack.setBorderColor(Color.parseColor("#F3B63F"));
                 break;
-            /*default:
-                civBgCustom.setBorderColor(Color.parseColor("#F3B63F"));
-                break;*/
         }
         readBookControl.setTextDrawableIndex(index);
     }

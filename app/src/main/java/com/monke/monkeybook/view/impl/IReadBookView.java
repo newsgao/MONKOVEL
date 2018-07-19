@@ -21,6 +21,10 @@ public interface IReadBookView extends IView {
      */
     String getNoteUrl();
 
+    Boolean getAdd();
+
+    void setAdd(Boolean isAdd);
+
     /**
      * @return 控制view
      */
@@ -41,8 +45,6 @@ public interface IReadBookView extends IView {
 
     void setHpbReadProgressMax(int count);
 
-    void initPop();
-
     void initChapterList();
 
     void loadLocationBookError(String errorMsg);
@@ -58,4 +60,6 @@ public interface IReadBookView extends IView {
     void openBookFromOther();
 
     void chapterChange(ChapterListBean chapterListBean);
+
+    void onMediaButton();
 }

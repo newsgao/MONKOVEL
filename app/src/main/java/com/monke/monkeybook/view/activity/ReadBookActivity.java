@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.Typeface;
@@ -21,9 +20,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
+import android.support.design.widget.AppBarLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -39,7 +38,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.monke.basemvplib.AppActivityManager;
-import com.monke.immerselayout.ImmerseLinearLayout;
 import com.monke.monkeybook.R;
 import com.monke.monkeybook.base.MBaseActivity;
 import com.monke.monkeybook.bean.BookShelfBean;
@@ -52,7 +50,8 @@ import com.monke.monkeybook.service.ReadAloudService;
 import com.monke.monkeybook.utils.BatteryUtil;
 import com.monke.monkeybook.utils.FileUtil;
 import com.monke.monkeybook.utils.PremissionCheck;
-import com.monke.monkeybook.utils.StatusBarUtil;
+import com.monke.monkeybook.utils.barUtil.BarHide;
+import com.monke.monkeybook.utils.barUtil.ImmersionBar;
 import com.monke.monkeybook.view.impl.IReadBookView;
 import com.monke.monkeybook.view.popupwindow.CheckAddShelfPop;
 import com.monke.monkeybook.view.popupwindow.MoreSettingPop;
@@ -77,17 +76,17 @@ import me.grantland.widget.AutofitTextView;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
+import static android.text.TextUtils.isEmpty;
 import static com.monke.monkeybook.presenter.ReadBookPresenterImpl.OPEN_FROM_OTHER;
 import static com.monke.monkeybook.service.ReadAloudService.ActionNewReadAloud;
 import static com.monke.monkeybook.service.ReadAloudService.PAUSE;
 import static com.monke.monkeybook.service.ReadAloudService.PLAY;
-import static com.monke.monkeybook.utils.StatusBarUtil.hasSoftKeys;
 
 public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implements IReadBookView {
     private final int ResultReplace = 101;
     private final int RESULT_OPEN_OTHER_PERMS = 102;
-    public final int ResultSelectBg = 103;
     public final int ResultSelectFont = 104;
+    public final int ResultStyleSet = 105;
 
     @BindView(R.id.fl_content)
     FrameLayout flContent;
@@ -97,10 +96,8 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     FrameLayout flMenu;
     @BindView(R.id.v_menu_bg)
     View vMenuBg;
-
     @BindView(R.id.ll_menu_bottom)
     LinearLayout llMenuBottom;
-
     @BindView(R.id.tv_pre)
     TextView tvPre;
     @BindView(R.id.tv_next)
@@ -143,18 +140,25 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     AutofitTextView atvUrl;
     @BindView(R.id.ll_menu_top)
     LinearLayout llMenuTop;
+    @BindView(R.id.appBar)
+    AppBarLayout appBar;
+    @BindView(R.id.ll_ISB)
+    LinearLayout llISB;
+
     //主菜单动画
     private Animation menuTopIn;
     private Animation menuTopOut;
     private Animation menuBottomIn;
     private Animation menuBottomOut;
     private ActionBar actionBar;
+    private boolean isMenuShow;
 
     private boolean aloudButton;
     private boolean hideStatusBar;
-    private boolean isBind;
     private String noteUrl;
+    private Boolean isAdd = false; //判断是否已经添加进书架
     private int aloudStatus;
+    private boolean fromMediaButton = false;
 
     private Menu menu;
     private String[] perms = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
@@ -168,10 +172,12 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     private ThisBatInfoReceiver batInfoReceiver;
     private ContentSwitchView.LoadDataListener loadDataListener;
     private ReadBookControl readBookControl = ReadBookControl.getInstance();
+
     @SuppressLint("SimpleDateFormat")
     private DateFormat dfTime = new SimpleDateFormat("HH:mm");
 
     private Boolean showCheckPermission = false;
+
 
     @Override
     protected IReadBookPresenter initInjector() {
@@ -183,8 +189,10 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         if (savedInstanceState != null) {
             noteUrl = savedInstanceState.getString("noteUrl");
             aloudStatus = savedInstanceState.getInt("aloudStatus");
+            isAdd = savedInstanceState.getBoolean("isAdd");
         }
         readBookControl.setLineChange(System.currentTimeMillis());
+        readBookControl.initTextDrawableIndex();
         super.onCreate(savedInstanceState);
         batInfoReceiver = new ThisBatInfoReceiver();
         IntentFilter filter = new IntentFilter();
@@ -200,15 +208,8 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         hideStatusBar = readBookControl.getHideStatusBar();
         readAloudIntent = new Intent(this, ReadAloudService.class);
         readAloudIntent.setAction(ActionNewReadAloud);
-
-        if (readBookControl.getKeepScreenOn()) {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        }
-        hideStatusBar(hideStatusBar);
-        readBookImmersionDetect();
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.compat(this, 0);
-        }
+        Intent intent = this.getIntent();
+        fromMediaButton = intent.getBooleanExtra("readAloud", false);
     }
 
     @Override
@@ -217,6 +218,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         if (mPresenter.getBookShelf() != null) {
             outState.putString("noteUrl", mPresenter.getBookShelf().getNoteUrl());
             outState.putInt("aloudStatus", aloudStatus);
+            outState.putBoolean("isAdd", isAdd);
         }
     }
 
@@ -224,18 +226,51 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
-            hideNavigationBar();
-            if (flMenu.getVisibility() == View.VISIBLE) {
-                StatusBarUtil.showNavigationBar(this,true);
-            }else {
-                StatusBarUtil.showNavigationBar(this,!preferences.getBoolean("hide_navigation_bar", false));
-            }
-            if (readBookControl.getTextDrawableIndex() == 4 | preferences.getBoolean("nightTheme", false)){
-                StatusBarUtil.setDarkStatusIcon(this,false);
-            }else {
-                StatusBarUtil.setDarkStatusIcon(this,true);
+            initImmersionBar();
+        }
+    }
+
+    /**
+     * 状态栏
+     */
+    @Override
+    protected void initImmersionBar() {
+        super.initImmersionBar();
+        if (readBookControl.getHideNavigationBar()) {
+            mImmersionBar.fullScreen(true);
+            if (ImmersionBar.hasNavigationBar(this)) {
+                llMenuBottom.setPadding(0, 0, 0, ImmersionBar.getNavigationBarHeight(this));
             }
         }
+        if (isMenuShow) {
+            if (isImmersionBarEnabled() && !isNightTheme()) {
+                mImmersionBar.statusBarDarkFont(true, 0.2f);
+            } else {
+                mImmersionBar.statusBarDarkFont(false);
+            }
+            mImmersionBar.hideBar(BarHide.FLAG_SHOW_BAR);
+        } else {
+            if (!isImmersionBarEnabled()) {
+                mImmersionBar.statusBarDarkFont(false);
+            } else if (readBookControl.getDarkStatusIcon()) {
+                mImmersionBar.statusBarDarkFont(true, 0.2f);
+            } else {
+                mImmersionBar.statusBarDarkFont(false);
+            }
+
+                if (hideStatusBar && readBookControl.getHideNavigationBar()) {
+                    mImmersionBar.hideBar(BarHide.FLAG_HIDE_BAR);
+                } else if (hideStatusBar){
+                    mImmersionBar.hideBar(BarHide.FLAG_HIDE_STATUS_BAR);
+                } else if (readBookControl.getHideNavigationBar()) {
+                    mImmersionBar.hideBar(BarHide.FLAG_HIDE_NAVIGATION_BAR);
+                } else {
+                    mImmersionBar.hideBar(BarHide.FLAG_SHOW_BAR);
+                }
+
+        }
+
+        mImmersionBar.init();
     }
 
     @Override
@@ -248,12 +283,13 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         menuTopIn.setAnimationListener(new Animation.AnimationListener() {
             @Override
             public void onAnimationStart(Animation animation) {
-                hideStatusBar(false);
+                initImmersionBar();
             }
 
             @Override
             public void onAnimationEnd(Animation animation) {
                 vMenuBg.setOnClickListener(v -> popMenuOut());
+                initImmersionBar();
             }
 
             @Override
@@ -268,7 +304,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
             @Override
             public void onAnimationStart(Animation animation) {
                 vMenuBg.setOnClickListener(null);
-                hideStatusBar(hideStatusBar);
+                initImmersionBar();
             }
 
             @Override
@@ -283,13 +319,6 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         });
         menuBottomOut = AnimationUtils.loadAnimation(this, R.anim.anim_readbook_bottom_out);
 
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            TypedValue typedValue = new TypedValue();
-            this.getTheme().resolveAttribute(R.attr.colorPrimary, typedValue, true);
-            final  int color = typedValue.data;
-            ImmerseLinearLayout immerseLinearLayout = findViewById(R.id.ll_ISB);
-            immerseLinearLayout.setBackgroundColor(color);
-        }
     }
 
     @Override
@@ -298,6 +327,10 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         this.setSupportActionBar(toolbar);
         setupActionBar();
         initCsvBook();
+        llISB.setPadding(0, ImmersionBar.getStatusBarHeight(this), 0, 0);
+        if (readBookControl.getKeepScreenOn()) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
         //图标眷色
         ivCList.getDrawable().mutate();
         ivCList.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
@@ -307,13 +340,27 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         ivInterface.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
         ivSetting.getDrawable().mutate();
         ivSetting.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
-        if (preferences.getBoolean("nightTheme", false)) {
-            ibNightTheme.setImageResource(R.drawable.ic_brightness_high_black_24dp_new);
+        if (isNightTheme()) {
+            ibNightTheme.setImageResource(R.drawable.ic_daytime_24dp);
         } else {
             ibNightTheme.setImageResource(R.drawable.ic_brightness_2_black_24dp_new);
         }
         //弹窗
         moProgressHUD = new MoProgressHUD(this);
+        //目录初始化
+        chapterListView.setOnChangeListener(new ChapterListView.OnChangeListener() {
+            @Override
+            public void animIn() {
+                isMenuShow = true;
+                initImmersionBar();
+            }
+
+            @Override
+            public void animOut() {
+                isMenuShow = false;
+                initImmersionBar();
+            }
+        });
         //界面设置
         readInterfacePop = new ReadInterfacePop(this, new ReadInterfacePop.OnChangeProListener() {
             @Override
@@ -331,23 +378,8 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
             @Override
             public void bgChange() {
                 csvBook.changeBg();
-                if (readBookControl.getTextDrawableIndex() == 4){
-                    if ("sys_miui".equals(StatusBarUtil.getSystem())) {
-                        StatusBarUtil.MIUISetStatusBarLightMode(ReadBookActivity.this, false);
-                    }else {
-                        View decorView = getWindow().getDecorView();
-                        decorView.setSystemUiVisibility(0);
-                    }
-                }else{
-                    if ("sys_miui".equals(StatusBarUtil.getSystem())) {
-                        StatusBarUtil.MIUISetStatusBarLightMode(ReadBookActivity.this, true);
-                    }else {
-                        View decorView = getWindow().getDecorView();
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                        }
-                    }
-                }
+                readBookControl.initTextDrawableIndex();
+                initImmersionBar();
             }
 
             @Override
@@ -367,18 +399,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
             public void setBold() {
                 csvBook.setTextBold();
             }
-        });
-        //目录初始化
-        chapterListView.setOnChangeListener(new ChapterListView.OnChangeListener() {
-            @Override
-            public void animIn() {
-                hideStatusBar(false);
-            }
 
-            @Override
-            public void animOut() {
-                hideStatusBar(hideStatusBar);
-            }
         });
         //其它设置
         moreSettingPop = new MoreSettingPop(this, new MoreSettingPop.OnChangeProListener() {
@@ -415,7 +436,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
                 }
             }
         });
-        readAdjustPop.initLight();
+
     }
 
     @Override
@@ -425,25 +446,6 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
 
     private void initCsvBook() {
         csvBook.bookReadInit(() -> mPresenter.initData(ReadBookActivity.this));
-    }
-
-    @Override
-    public void initPop() {
-        //是否添加书架
-        checkAddShelfPop = new CheckAddShelfPop(this, mPresenter.getBookShelf().getBookInfoBean().getName(),
-                new CheckAddShelfPop.OnItemClickListener() {
-                    @Override
-                    public void clickExit() {
-                        mPresenter.removeFromShelf();
-                    }
-
-                    @Override
-                    public void clickAddShelf() {
-                        mPresenter.addToShelf(null);
-                        checkAddShelfPop.dismiss();
-                    }
-                });
-        initChapterList();
     }
 
     /**
@@ -512,7 +514,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         //朗读
         ibReadAloud.getDrawable().mutate();
         ibReadAloud.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
-        ibReadAloud.setOnClickListener(view -> startReadAloud());
+        ibReadAloud.setOnClickListener(view -> onMediaButton());
 
         //替换
         ibReplaceRule.getDrawable().mutate();
@@ -526,12 +528,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         //夜间模式
         ibNightTheme.getDrawable().mutate();
         ibNightTheme.getDrawable().setColorFilter(getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
-        ibNightTheme.setOnClickListener(view -> {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean("nightTheme", !preferences.getBoolean("nightTheme", false));
-            editor.apply();
-            setNightTheme();
-        });
+        ibNightTheme.setOnClickListener(view -> setNightTheme(!isNightTheme()));
 
         //上一章
         tvPre.setOnClickListener(view -> {
@@ -598,7 +595,6 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     @Override
     protected void onPause() {
         super.onPause();
-        mPresenter.saveProgress();
     }
 
     //设置ToolBar
@@ -617,7 +613,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     }
 
     @Override
-    public boolean onPrepareOptionsMenu(Menu menu){
+    public boolean onPrepareOptionsMenu(Menu menu) {
         this.menu = menu;
         showOnLineView();
         return super.onPrepareOptionsMenu(menu);
@@ -699,56 +695,10 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
     }
 
     /**
-     * 隐藏状态栏
-     */
-    private void hideStatusBar(Boolean hide) {
-        if (hide) {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        } else {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        }
-    }
-
-    /**
-     * 仅阅读界面沉浸状态栏
-     */
-    private void readBookImmersionDetect(){
-        if (preferences.getBoolean("readBookImmersion", false)) {
-            if (StatusBarUtil.getSystem().equals("sys_miui")) {
-                StatusBarUtil.MIUISetStatusBarLightMode(this, true);
-            }else {
-                StatusBarUtil.compat(this, Color.TRANSPARENT);
-            }
-            if (preferences.getBoolean("nightTheme", false)) {
-                if (StatusBarUtil.getSystem().equals("sys_miui")) {
-                    StatusBarUtil.MIUISetStatusBarLightMode(this, false);
-                }else {
-                    View decorView = getWindow().getDecorView();
-                    decorView.setSystemUiVisibility(0);
-                }
-            }
-        }
-    }
-
-    /**
-     * 隐藏虚拟按键
-     */
-    private void hideNavigationBar() {
-        if (preferences.getBoolean("hide_navigation_bar", false)) {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE);
-        }
-    }
-
-    /**
      * 隐藏菜单
      */
     private void popMenuOut() {
-        StatusBarUtil.showNavigationBar(this,!preferences.getBoolean("hide_navigation_bar", false));
+        isMenuShow = false;
         if (flMenu.getVisibility() == View.VISIBLE) {
             llMenuTop.startAnimation(menuTopOut);
             llMenuBottom.startAnimation(menuBottomOut);
@@ -759,21 +709,10 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
      * 显示菜单
      */
     private void popMenuIn() {
-        StatusBarUtil.showNavigationBar(this,true);
+        isMenuShow = true;
         flMenu.setVisibility(View.VISIBLE);
         llMenuTop.startAnimation(menuTopIn);
-        if (hasSoftKeys(this.getWindowManager()) & preferences.getBoolean("hide_navigation_bar", false)){
-            llMenuBottom.setPadding(0,0,0, StatusBarUtil.getNavigationBarHeight(this));
-        }
         llMenuBottom.startAnimation(menuBottomIn);
-        hideStatusBar(false);
-        //hideNavigationBar();
-
-        if (readBookControl.getTextDrawableIndex() == 4 | preferences.getBoolean("nightTheme", false)){
-            StatusBarUtil.setDarkStatusIcon(this,false);
-        }else {
-            StatusBarUtil.setDarkStatusIcon(this,true);
-        }
     }
 
     private void toast(String msg) {
@@ -797,9 +736,10 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
                     @Override
                     public void stopService() {
                         csvBook.readAloudStop();
-                        if (isBind) {
+                        try {
                             unbindService(conn);
-                            isBind = false;
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
 
@@ -838,6 +778,12 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
                         ibReadAloud.setContentDescription(text);
                         tvReadAloudTimer.setText(text);
                     }
+
+                    @Override
+                    public void speakStart(int speakIndex) {
+                        runOnUiThread(() -> csvBook.speakStart(speakIndex));
+                    }
+
                 });
             }
         };
@@ -921,30 +867,43 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
                 }
             }
 
+            @Override
+            public void curPageFinish() {
+                if (fromMediaButton) {
+                    fromMediaButton = false;
+                    onMediaButton();
+                }
+            }
+
         };
     }
 
     /**
-     * 开始朗读
+     * 检查是否加入书架
      */
-    private void startReadAloud() {
-        if (!ReadAloudService.running) {
-            aloudStatus = ReadAloudService.STOP;
-        }
-        switch (aloudStatus) {
-            case PAUSE:
-                ReadAloudService.resume(this);
-                break;
-            case PLAY:
-                ReadAloudService.pause(this);
-                break;
-            default:
-                ReadBookActivity.this.popMenuOut();
-                if (mPresenter.getBookShelf() != null) {
-                    aloudButton = true;
-                    csvBook.readAloudStart();
-                    isBind = ReadBookActivity.this.bindService(readAloudIntent, conn, Context.BIND_AUTO_CREATE);
-                }
+    public boolean checkAddShelf() {
+        if (isAdd) {
+            return true;
+        } else {
+            if (checkAddShelfPop == null) {
+                checkAddShelfPop = new CheckAddShelfPop(this, mPresenter.getBookShelf().getBookInfoBean().getName(),
+                        new CheckAddShelfPop.OnItemClickListener() {
+                            @Override
+                            public void clickExit() {
+                                mPresenter.removeFromShelf();
+                            }
+
+                            @Override
+                            public void clickAddShelf() {
+                                mPresenter.addToShelf(null);
+                                checkAddShelfPop.dismiss();
+                            }
+                        });
+            }
+            if (!checkAddShelfPop.isShowing()) {
+                checkAddShelfPop.showAtLocation(flContent, Gravity.CENTER, 0, 0);
+            }
+            return false;
         }
     }
 
@@ -968,16 +927,13 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         } else {
             if (keyCode == KeyEvent.KEYCODE_BACK) {
                 if (flMenu.getVisibility() == View.VISIBLE) {
-                    popMenuOut();
+                    finish();
                     return true;
                 } else if (chapterListView.dismissChapterList()) {
                     return true;
                 } else if (ReadAloudService.running && aloudStatus == PLAY) {
                     ReadAloudService.pause(this);
                     Toast.makeText(this, R.string.read_aloud_pause, Toast.LENGTH_SHORT).show();
-                    return true;
-                } else if (!mPresenter.getAdd() && checkAddShelfPop != null && !checkAddShelfPop.isShowing()) {
-                    checkAddShelfPop.showAtLocation(flContent, Gravity.CENTER, 0, 0);
                     return true;
                 } else {
                     finish();
@@ -1016,7 +972,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         if (mPresenter.getBookShelf() != null && !mPresenter.getBookShelf().getTag().equals(BookShelfBean.LOCAL_TAG)) {
             atvUrl.setVisibility(View.VISIBLE);
             if (menu != null) {
-                for (int i = 0; i < menu.size(); i++){
+                for (int i = 0; i < menu.size(); i++) {
                     menu.getItem(i).setVisible(true);
                     menu.getItem(i).setEnabled(true);
                 }
@@ -1024,7 +980,7 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         } else if (mPresenter.getBookShelf() != null && mPresenter.getBookShelf().getTag().equals(BookShelfBean.LOCAL_TAG)) {
             atvUrl.setVisibility(View.GONE);
             if (menu != null) {
-                for (int i = 0; i < menu.size(); i++){
+                for (int i = 0; i < menu.size(); i++) {
                     menu.getItem(i).setVisible(false);
                     menu.getItem(i).setEnabled(false);
                 }
@@ -1034,8 +990,22 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
 
     @Override
     public String getNoteUrl() {
+        if (isEmpty(noteUrl)) {
+            noteUrl = readBookControl.getLastNoteUrl();
+        }
         return noteUrl;
     }
+
+    @Override
+    public Boolean getAdd() {
+        return isAdd;
+    }
+
+    @Override
+    public void setAdd(Boolean isAdd) {
+        this.isAdd = isAdd;
+    }
+
 
     @Override
     public ContentSwitchView getCsvBook() {
@@ -1072,6 +1042,31 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
         }
     }
 
+    /**
+     * 朗读按钮
+     */
+    @Override
+    public void onMediaButton() {
+        if (!ReadAloudService.running) {
+            aloudStatus = ReadAloudService.STOP;
+        }
+        switch (aloudStatus) {
+            case PAUSE:
+                ReadAloudService.resume(this);
+                break;
+            case PLAY:
+                ReadAloudService.pause(this);
+                break;
+            default:
+                ReadBookActivity.this.popMenuOut();
+                if (mPresenter.getBookShelf() != null) {
+                    aloudButton = true;
+                    csvBook.readAloudStart();
+                    ReadBookActivity.this.bindService(readAloudIntent, conn, Context.BIND_AUTO_CREATE);
+                }
+        }
+    }
+
     @AfterPermissionGranted(RESULT_OPEN_OTHER_PERMS)
     private void onResultOpenOtherPerms() {
         if (EasyPermissions.hasPermissions(this, perms)) {
@@ -1095,11 +1090,6 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
             case ResultReplace:
                 recreate();
                 break;
-            case ResultSelectBg:
-                if (resultCode == RESULT_OK && null != data) {
-                    readInterfacePop.setCustomBg(data.getData());
-                }
-                break;
             case ResultSelectFont:
                 if (resultCode == RESULT_OK && null != data) {
                     String path = FileUtil.getPath(this, data.getData());
@@ -1112,8 +1102,15 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
                     }
                 }
                 break;
+            case ResultStyleSet:
+                if (resultCode == RESULT_OK) {
+                    readBookControl.initTextDrawableIndex();
+                    csvBook.changeBg();
+                    readInterfacePop.setBg();
+                }
+                break;
         }
-
+        initImmersionBar();
     }
 
     @SuppressLint("DefaultLocale")
@@ -1129,7 +1126,6 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
             showCheckPermission = true;
             mPresenter.openBookFromOther(this);
         }
-        readBookImmersionDetect();
     }
 
     @Override
@@ -1144,6 +1140,9 @@ public class ReadBookActivity extends MBaseActivity<IReadBookPresenter> implemen
      */
     @Override
     public void finish() {
+        if (!checkAddShelf()) {
+            return;
+        }
         if (!AppActivityManager.getInstance().isExist(MainActivity.class)) {
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);

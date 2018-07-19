@@ -29,7 +29,9 @@ import com.monke.monkeybook.R;
 import com.monke.monkeybook.help.RunMediaPlayer;
 import com.monke.monkeybook.view.activity.ReadBookActivity;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -41,7 +43,6 @@ import static com.monke.monkeybook.MApplication.DEBUG;
  * Created by GKF on 2018/1/2.
  * 朗读服务
  */
-
 public class ReadAloudService extends Service {
     public static final int PLAY = 1;
     public static final int STOP = 0;
@@ -67,9 +68,8 @@ public class ReadAloudService extends Service {
     private Boolean ttsInitSuccess = false;
     private Boolean speak = true;
     private Boolean pause = false;
-    private String content;
+    private List<String> contentList = new ArrayList<>();
     private int nowSpeak;
-    private int allSpeak;
     private int timeMinute = 0;
     private final int maxTimeMinute = 60;
     private boolean timerEnable = false;
@@ -82,6 +82,9 @@ public class ReadAloudService extends Service {
     private BroadcastReceiver broadcastReceiver;
     private SharedPreferences preference;
     private int speechRate;
+
+    public ReadAloudService() {
+    }
 
     @Override
     public void onCreate() {
@@ -104,28 +107,24 @@ public class ReadAloudService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent.getAction();
-        assert action != null;
-        switch (action) {
-            case ActionDoneService:
-                doneService();
-                break;
-            case ActionPauseService:
-                pauseReadAloud(true);
-                break;
-            case ActionResumeService:
-                resumeReadAloud();
-                break;
-            case ActionMediaButton:
-                aloudControl();
-                break;
-            case ActionSetTimer:
-                updateTimer(intent.getIntExtra("minute", 10));
-                break;
-            case ActionNewReadAloud:
-                newReadAloud(intent.getStringExtra("content"), intent.getBooleanExtra("aloudButton", false));
-                break;
-            default:
-                break;
+        if (action != null) {
+            switch (action) {
+                case ActionDoneService:
+                    doneService();
+                    break;
+                case ActionPauseService:
+                    pauseReadAloud(true);
+                    break;
+                case ActionResumeService:
+                    resumeReadAloud();
+                    break;
+                case ActionSetTimer:
+                    updateTimer(intent.getIntExtra("minute", 10));
+                    break;
+                case ActionNewReadAloud:
+                    newReadAloud(intent.getStringExtra("content"), intent.getBooleanExtra("aloudButton", false));
+                    break;
+            }
         }
         return super.onStartCommand(intent, flags, startId);
     }
@@ -136,7 +135,13 @@ public class ReadAloudService extends Service {
             return;
         }
         nowSpeak = 0;
-        this.content = content.replaceAll("……", "");
+        contentList.clear();
+        String[] splitSpeech = content.split("\r\n");
+        for (String aSplitSpeech : splitSpeech) {
+            if (!isEmpty(aSplitSpeech)) {
+                contentList.add(aSplitSpeech);
+            }
+        }
         running = true;
         if (aloudButton || speak) {
             speak = false;
@@ -146,34 +151,31 @@ public class ReadAloudService extends Service {
     }
 
     public void playTTS() {
-        if (isEmpty(content)) {
+        if (contentList.size() < 1) {
             aloudServiceListener.readAloudNext();
             return;
         }
         if (ttsInitSuccess && !speak && requestFocus()) {
             speak = !speak;
-            aloudServiceListener.setStatus(PLAY);
+            if (aloudServiceListener != null) {
+                aloudServiceListener.setStatus(PLAY);
+            }
             updateNotification();
             initSpeechRate();
-            String[] splitSpeech = content.split("\r\n");
             HashMap<String, String> map = new HashMap<>();
             map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "content");
-            allSpeak = 0;
-            for (int i = nowSpeak; i < splitSpeech.length; i++) {
-                if (!isEmpty(splitSpeech[i])) {
-                    allSpeak = allSpeak + 1;
-                    if (i == 0) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            textToSpeech.speak(splitSpeech[i], TextToSpeech.QUEUE_FLUSH, null, "content");
-                        } else {
-                            textToSpeech.speak(splitSpeech[i], TextToSpeech.QUEUE_FLUSH, map);
-                        }
+            for (int i = nowSpeak; i < contentList.size(); i++) {
+                if (i == 0) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        textToSpeech.speak(contentList.get(i), TextToSpeech.QUEUE_FLUSH, null, "content");
                     } else {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            textToSpeech.speak(splitSpeech[i], TextToSpeech.QUEUE_ADD, null, "content");
-                        } else {
-                            textToSpeech.speak(splitSpeech[i], TextToSpeech.QUEUE_ADD, map);
-                        }
+                        textToSpeech.speak(contentList.get(i), TextToSpeech.QUEUE_FLUSH, map);
+                    }
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        textToSpeech.speak(contentList.get(i), TextToSpeech.QUEUE_ADD, null, "content");
+                    } else {
+                        textToSpeech.speak(contentList.get(i), TextToSpeech.QUEUE_ADD, map);
                     }
                 }
             }
@@ -247,14 +249,6 @@ public class ReadAloudService extends Service {
         updateTimer(0);
         pause = false;
         playTTS();
-    }
-
-    private void aloudControl() {
-        if (pause) {
-            resumeReadAloud();
-        } else {
-            pauseReadAloud(true);
-        }
     }
 
     private void updateTimer(int minute) {
@@ -454,6 +448,9 @@ public class ReadAloudService extends Service {
                         .build());
     }
 
+    /**
+     * 服务监听
+     */
     public interface AloudServiceListener {
         void stopService();
 
@@ -464,6 +461,9 @@ public class ReadAloudService extends Service {
         void setStatus(int status);
 
         void upTimer(String text);
+
+        void speakStart(int speakIndex);
+
     }
 
     public class MyBinder extends Binder {
@@ -493,17 +493,23 @@ public class ReadAloudService extends Service {
         }
     }
 
+    /**
+     * 朗读监听
+     */
     private class ttsUtteranceListener extends UtteranceProgressListener {
 
         @Override
         public void onStart(String s) {
+            if (aloudServiceListener != null) {
+                aloudServiceListener.speakStart(nowSpeak);
+            }
             updateMediaSessionPlaybackState();
         }
 
         @Override
         public void onDone(String s) {
             nowSpeak = nowSpeak + 1;
-            if (nowSpeak == allSpeak) {
+            if (nowSpeak >= contentList.size()) {
                 aloudServiceListener.readAloudNext();
             }
         }

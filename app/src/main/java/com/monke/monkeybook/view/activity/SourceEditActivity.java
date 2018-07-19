@@ -29,7 +29,6 @@ import com.monke.monkeybook.base.MBaseActivity;
 import com.monke.monkeybook.bean.BookSourceBean;
 import com.monke.monkeybook.presenter.SourceEditPresenterImpl;
 import com.monke.monkeybook.presenter.impl.ISourceEditPresenter;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.impl.ISourceEditView;
 
 import java.io.File;
@@ -172,9 +171,7 @@ public class SourceEditActivity extends MBaseActivity<ISourceEditPresenter> impl
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_source_edit);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
+
     }
 
     @Override

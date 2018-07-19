@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">阅读</string>
+    <string name="last_read">最后阅读</string>
     <string name="read_summary">让阅读成为一种习惯。</string>
     <string name="update_log">
     更新日志\n
@@ -14,13 +15,14 @@
     <string name="action_grid">网格视图</string>
     <string name="action_list_grid">列表/网格</string>
     <string name="book_library">书城</string>
-    <string name="book_local">本地</string>
+    <string name="book_local">添加本地</string>
     <string name="book_source_manage">书源管理</string>
     <string name="setting">设置</string>
     <string name="about">关于</string>
     <string name="donate">捐赠</string>
     <string name="exit">退出</string>
     <string name="exit_no_save">还未保存,是否继续编辑</string>
+    <string name="read_style">阅读样式设置</string>
 
     <string name="navigation_drawer_open">打开侧边栏</string>
     <string name="navigation_drawer_close">关闭侧边栏</string>
@@ -80,6 +82,7 @@
     <string name="read_aloud_s">点击打开阅读界面</string>
     <string name="text_return">返回</string>
     <string name="refresh">刷新</string>
+    <string name="start">开始</string>
     <string name="stop">停止</string>
     <string name="pause">暂停</string>
     <string name="resume">继续</string>
@@ -173,8 +176,12 @@
     <string name="no_last_chapter">无最新章节信息</string>
     <string name="showTimeBattery">显示时间和电量</string>
     <string name="showLine">显示分隔线</string>
-    <string name="readBookImmersion">仅阅读界面沉浸式状态栏</string>
+    <string name="darkStatusIcon">深色状态栏图标</string>
     <string name="copy_text">拷贝内容</string>
     <string name="download_all">一键缓存</string>
+    <string name="content_sl">这是一段测试文字\n\u3000\u3000只是让你看看效果的</string>
+    <string name="text_bg_style">文字颜色和背景(长按自定义)</string>
+    <string name="immersion_status_bar">沉浸式状态栏</string>
+    <string name="un_download">还剩%d章未下载</string>
 
 </resources>

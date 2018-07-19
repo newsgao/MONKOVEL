@@ -6,8 +6,6 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.ExpandableListView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -18,7 +16,6 @@ import com.monke.monkeybook.bean.FindKindBean;
 import com.monke.monkeybook.bean.FindKindGroupBean;
 import com.monke.monkeybook.presenter.FindBookPresenterImpl;
 import com.monke.monkeybook.presenter.impl.IFindBookPresenter;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.adapter.FindKindAdapter;
 import com.monke.monkeybook.view.impl.IFindBookView;
 
@@ -38,8 +35,6 @@ public class FindBookActivity extends MBaseActivity<IFindBookPresenter> implemen
     @BindView(R.id.tv_empty)
     TextView tvEmpty;
 
-    private Animation animIn;
-    private Animation animOut;
     private FindKindAdapter adapter;
 
     @Override
@@ -50,20 +45,11 @@ public class FindBookActivity extends MBaseActivity<IFindBookPresenter> implemen
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_expandable_list_vew);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
-    }
-
-    @Override
-    protected void firstRequest() {
-        llContent.startAnimation(animIn);
     }
 
     @Override
     protected void initData() {
-        animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in);
-        animOut = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_out);
+
     }
 
     @Override
@@ -92,7 +78,13 @@ public class FindBookActivity extends MBaseActivity<IFindBookPresenter> implemen
         //  设置子选项点击监听事件
         expandableList.setOnChildClickListener((parent, v, groupPosition, childPosition, id) -> {
             FindKindBean kindBean = adapter.getDataList().get(groupPosition).getChildren().get(childPosition);
-            ChoiceBookActivity.startChoiceBookActivity(this, kindBean.getKindName(), kindBean.getKindUrl(), kindBean.getTag());
+
+            Intent intent = new Intent(this, ChoiceBookActivity.class);
+            intent.putExtra("url", kindBean.getKindUrl());
+            intent.putExtra("title", kindBean.getKindName());
+            intent.putExtra("tag", kindBean.getTag());
+            startActivityByAnim(intent, v, "sharedView", android.R.anim.fade_in, android.R.anim.fade_out);
+
             return true;
         });
 
@@ -141,11 +133,6 @@ public class FindBookActivity extends MBaseActivity<IFindBookPresenter> implemen
                 return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void bindEvent() {
-
     }
 
     @Override

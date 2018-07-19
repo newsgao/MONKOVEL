@@ -60,9 +60,8 @@ ext {
 }
 dependencies {
     api project(':basemvplib')
+    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
     testImplementation 'junit:junit:4.12'
-
-    //implementation fileTree(include: ['*.jar'], dir: 'libs')
 
     //fireBase
     implementation 'com.google.firebase:firebase-core:15.0.2'
@@ -84,15 +83,12 @@ dependencies {
     //codecMD5
     implementation 'commons-codec:commons-codec:1.11'
 
-    //沉浸式状态栏
-    implementation 'com.zhangmonke:ImmerseLayout:1.1.1'
-
     //ProgressBar
     implementation 'com.zhangmonke:MProgressBar:1.0.1'
 
     //Glide
-    implementation 'com.github.bumptech.glide:glide:4.6.1'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.6.1'
+    implementation 'com.github.bumptech.glide:glide:4.7.1'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.7.1'
     implementation 'jp.wasabeef:glide-transformations:3.2.0'
     // If you want to use the GPU Filters
     implementation 'jp.co.cyberagent.android.gpuimage:gpuimage-library:1.4.1'
@@ -134,7 +130,6 @@ dependencies {
 
     //简繁转换
     implementation 'com.luhuiguo:chinese-utils:1.0'
-
 
 }
 

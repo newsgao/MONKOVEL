@@ -12,8 +12,6 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 
 import com.monke.monkeybook.R;
@@ -24,7 +22,6 @@ import com.monke.monkeybook.help.MyItemTouchHelpCallback;
 import com.monke.monkeybook.model.ReplaceRuleManage;
 import com.monke.monkeybook.presenter.ReplaceRulePresenterImpl;
 import com.monke.monkeybook.presenter.impl.IReplaceRulePresenter;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.adapter.ReplaceRuleAdapter;
 import com.monke.monkeybook.view.impl.IReplaceRuleView;
 import com.monke.monkeybook.widget.modialog.MoProgressHUD;
@@ -59,7 +56,6 @@ public class ReplaceRuleActivity extends MBaseActivity<IReplaceRulePresenter> im
 
     private String[] perms = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
     private MoProgressHUD moProgressHUD;
-    private Animation animIn;
     private ReplaceRuleAdapter adapter;
     private boolean selectAll = true;
 
@@ -71,9 +67,6 @@ public class ReplaceRuleActivity extends MBaseActivity<IReplaceRulePresenter> im
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_recycler_vew);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
     }
 
     @Override
@@ -87,8 +80,7 @@ public class ReplaceRuleActivity extends MBaseActivity<IReplaceRulePresenter> im
 
     @Override
     protected void initData() {
-        animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in);
-        Animation animOut = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_out);
+
     }
 
     private void initRecyclerView() {
@@ -155,7 +147,7 @@ public class ReplaceRuleActivity extends MBaseActivity<IReplaceRulePresenter> im
 
     @Override
     protected void firstRequest() {
-        llContent.startAnimation(animIn);
+
     }
 
     @Override

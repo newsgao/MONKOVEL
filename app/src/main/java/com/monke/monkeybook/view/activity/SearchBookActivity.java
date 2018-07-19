@@ -19,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.monke.monkeybook.R;
 import com.monke.monkeybook.base.MBaseActivity;
 import com.monke.monkeybook.bean.SearchBookBean;
@@ -26,7 +27,6 @@ import com.monke.monkeybook.bean.SearchHistoryBean;
 import com.monke.monkeybook.presenter.BookDetailPresenterImpl;
 import com.monke.monkeybook.presenter.SearchBookPresenterImpl;
 import com.monke.monkeybook.presenter.impl.ISearchBookPresenter;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.adapter.SearchBookAdapter;
 import com.monke.monkeybook.view.adapter.SearchHistoryAdapter;
 import com.monke.monkeybook.view.impl.ISearchBookView;
@@ -76,16 +76,14 @@ public class SearchBookActivity extends MBaseActivity<ISearchBookPresenter> impl
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_search_book);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
+
     }
 
     @Override
     protected void initData() {
         explosionField = ExplosionField.attach2Window(this);
         searchHistoryAdapter = new SearchHistoryAdapter();
-        searchBookAdapter = new SearchBookAdapter();
+        searchBookAdapter = new SearchBookAdapter(this);
     }
 
     @SuppressLint("InflateParams")
@@ -242,7 +240,9 @@ public class SearchBookActivity extends MBaseActivity<ISearchBookPresenter> impl
         openOrCloseHistory(showHishtory);
     }
 
-    //开始搜索
+    /**
+     * 开始搜索
+     */
     private void toSearch() {
         if (searchView.getQuery().toString().trim().length() > 0) {
             final String key = searchView.getQuery().toString().trim();
@@ -339,15 +339,19 @@ public class SearchBookActivity extends MBaseActivity<ISearchBookPresenter> impl
     public void updateSearchItem(int index) {
         if (index < searchBookAdapter.getItemcount()) {
             int startIndex = ((LinearLayoutManager) rfRvSearchBooks.getRecyclerView().getLayoutManager()).findFirstVisibleItemPosition();
-            TextView tvAddShelf = rfRvSearchBooks.getRecyclerView().getChildAt(index - startIndex).findViewById(R.id.tv_add_shelf);
-            if (tvAddShelf != null) {
-                if (searchBookAdapter.getSearchBooks().get(index).getIsAdd()) {
-                    tvAddShelf.setText("已添加");
-                    tvAddShelf.setEnabled(false);
-                } else {
-                    tvAddShelf.setText("+添加");
-                    tvAddShelf.setEnabled(true);
+            try {
+                TextView tvAddShelf = rfRvSearchBooks.getRecyclerView().getChildAt(index - startIndex).findViewById(R.id.tv_add_shelf);
+                if (tvAddShelf != null) {
+                    if (searchBookAdapter.getSearchBooks().get(index).getIsAdd()) {
+                        tvAddShelf.setText("已添加");
+                        tvAddShelf.setEnabled(false);
+                    } else {
+                        tvAddShelf.setText("+添加");
+                        tvAddShelf.setEnabled(true);
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

@@ -7,7 +7,12 @@ import android.content.Intent;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import com.hwangjr.rxbus.RxBus;
+import com.monke.basemvplib.AppActivityManager;
 import com.monke.monkeybook.BuildConfig;
+import com.monke.monkeybook.help.RxBusTag;
+import com.monke.monkeybook.presenter.ReadBookPresenterImpl;
+import com.monke.monkeybook.view.activity.ReadBookActivity;
 
 /**
  * Created by GKF on 2018/1/6.
@@ -32,6 +37,7 @@ public class MediaButtonIntentReceiver extends BroadcastReceiver {
 
             String command = null;
             switch (keycode) {
+                case KeyEvent.KEYCODE_MEDIA_STOP:
                 case KeyEvent.KEYCODE_MEDIA_PAUSE:
                 case KeyEvent.KEYCODE_MEDIA_PLAY:
                 case KeyEvent.KEYCODE_HEADSETHOOK:
@@ -43,7 +49,7 @@ public class MediaButtonIntentReceiver extends BroadcastReceiver {
             }
             if (command != null) {
                 if (action == KeyEvent.ACTION_DOWN) {
-                    startService(context, command);
+                    readAloud(context, command);
                     return true;
                 }
             }
@@ -51,11 +57,14 @@ public class MediaButtonIntentReceiver extends BroadcastReceiver {
         return false;
     }
 
-    private static void startService(Context context, String command) {
-        if (ReadAloudService.running) {
-            final Intent intent = new Intent(context, ReadAloudService.class);
-            intent.setAction(command);
-            context.startService(intent);
+    private static void readAloud(final Context context, String command) {
+        if (!AppActivityManager.getInstance().isExist(ReadBookActivity.class)) {
+            Intent intent = new Intent(context, ReadBookActivity.class);
+            intent.putExtra("from", ReadBookPresenterImpl.OPEN_FROM_APP);
+            intent.putExtra("readAloud", true);
+            context.startActivity(intent);
+        } else {
+            RxBus.get().post(RxBusTag.MEDIA_BUTTON, command);
         }
     }
 

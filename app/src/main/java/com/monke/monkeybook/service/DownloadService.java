@@ -29,11 +29,15 @@ import com.monke.monkeybook.dao.DbHelper;
 import com.monke.monkeybook.dao.DownloadChapterBeanDao;
 import com.monke.monkeybook.help.RxBusTag;
 import com.monke.monkeybook.model.WebBookModelImpl;
+import com.monke.monkeybook.view.activity.DownloadActivity;
 import com.monke.monkeybook.view.activity.MainActivity;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.crypto.spec.DHGenParameterSpec;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableOnSubscribe;
@@ -52,6 +56,9 @@ public class DownloadService extends Service {
     private Boolean isStartDownload = false;
     private Boolean isDownloading = false;
     private Boolean isFinish = false;
+    private final static int ADD = 1;
+    private final static int REMOVE = 2;
+    private final static int CHECK = 3;
 
     private List<DownloadChapterBean> downloadingChapter = new ArrayList<>();
 
@@ -191,8 +198,8 @@ public class DownloadService extends Service {
                             .orderAsc(DownloadChapterBeanDao.Properties.DurChapterIndex).list();
                     if (downloadChapterList != null && downloadChapterList.size() > 0) {
                         for (int i = 0; i < downloadChapterList.size(); i++) {
-                            if (!checkInDownloadList(downloadChapterList.get(i))) {
-                                downloadingChapter.add(downloadChapterList.get(i));
+                            if (!editDownloadList(CHECK, downloadChapterList.get(i))) {
+                                editDownloadList(ADD, downloadChapterList.get(i));
                                 e.onNext(downloadChapterList.get(i));
                                 e.onComplete();
                                 return;
@@ -228,8 +235,8 @@ public class DownloadService extends Service {
                     });
                 }
             }).flatMap(bookContentBean -> Observable.create((ObservableOnSubscribe<Boolean>) e -> {
-                removeFromDownloadList(data);
-                e.onNext(true);
+                DbHelper.getInstance().getmDaoSession().getDownloadChapterBeanDao().delete(data);
+                e.onNext(editDownloadList(REMOVE, data));
                 e.onComplete();
             }))
                     .observeOn(AndroidSchedulers.mainThread())
@@ -259,24 +266,21 @@ public class DownloadService extends Service {
         }
     }
 
-    private synchronized boolean checkInDownloadList(DownloadChapterBean value) {
-        boolean inDownloadList = false;
-        for (DownloadChapterBean chapterBean : downloadingChapter) {
-            if (chapterBean.getDurChapterUrl().equals(value.getDurChapterUrl())) {
-                inDownloadList = true;
+    private synchronized boolean editDownloadList(int editType, DownloadChapterBean value) {
+        if (editType == ADD) {
+            downloadingChapter.add(value);
+            return true;
+        } else if (editType == REMOVE) {
+            downloadingChapter.remove(value);
+            return true;
+        } else {
+            boolean inDownloadList = false;
+            for (DownloadChapterBean chapterBean : downloadingChapter) {
+                if (chapterBean.getDurChapterUrl().equals(value.getDurChapterUrl())) {
+                    inDownloadList = true;
+                }
             }
-        }
-        return inDownloadList;
-    }
-
-    private synchronized void removeFromDownloadList(DownloadChapterBean value) {
-        DbHelper.getInstance().getmDaoSession().getDownloadChapterBeanDao().delete(value);
-        Iterator<DownloadChapterBean> iterator = downloadingChapter.iterator();
-        while (iterator.hasNext()) {
-            if (iterator.next().getDurChapterUrl().equals(value.getDurChapterUrl())) {
-                iterator.remove();
-                return;
-            }
+            return inDownloadList;
         }
     }
 
@@ -368,11 +372,11 @@ public class DownloadService extends Service {
     private void isProgress(DownloadChapterBean downloadChapterBean) {
         RxBus.get().post(RxBusTag.PROGRESS_DOWNLOAD_LISTENER, downloadChapterBean);
 
-        Intent mainIntent = new Intent(this, MainActivity.class);
+        Intent mainIntent = new Intent(this, DownloadActivity.class);
         PendingIntent mainPendingIntent = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Intent doneIntent = new Intent(this, this.getClass());
         doneIntent.setAction(doneAction);
-        PendingIntent donePendingIntent = PendingIntent.getService(this, 0, doneIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        PendingIntent donePendingIntent = PendingIntent.getService(this, 0, doneIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         //创建 Notification.Builder 对象
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, MApplication.channelIdDownload)
                 .setSmallIcon(R.drawable.ic_download_black_24dp)

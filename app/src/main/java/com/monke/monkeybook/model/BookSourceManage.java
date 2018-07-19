@@ -13,7 +13,7 @@ import com.monke.monkeybook.bean.BookShelfBean;
 import com.monke.monkeybook.bean.BookSourceBean;
 import com.monke.monkeybook.dao.BookSourceBeanDao;
 import com.monke.monkeybook.dao.DbHelper;
-import com.monke.monkeybook.model.content.AnalyzeHeaders;
+import com.monke.monkeybook.model.AnalyzeRule.AnalyzeHeaders;
 import com.monke.monkeybook.model.content.DefaultModelImpl;
 import com.monke.monkeybook.model.impl.IHttpGetApi;
 import com.monke.monkeybook.model.impl.IStationBookModel;
@@ -151,13 +151,5 @@ public class BookSourceManage extends BaseModelImpl {
         }
     }
 
-    //获取book source class
-    static IStationBookModel getBookSourceModel(String tag) {
-        switch (tag) {
-            case BookShelfBean.LOCAL_TAG:
-                return null;
-            default:
-                return DefaultModelImpl.getInstance(tag);
-        }
-    }
+
 }

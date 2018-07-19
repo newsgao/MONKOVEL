@@ -11,8 +11,6 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,7 +19,6 @@ import com.monke.basemvplib.impl.IPresenter;
 import com.monke.monkeybook.MApplication;
 import com.monke.monkeybook.R;
 import com.monke.monkeybook.base.MBaseActivity;
-import com.monke.monkeybook.utils.StatusBarUtil;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -79,8 +76,6 @@ public class AboutActivity extends MBaseActivity {
     @BindView(R.id.tv_source_share)
     TextView tvSourceShare;
 
-    private Animation animIn;
-
     private String qq = "701903217";
 
     @Override
@@ -96,15 +91,11 @@ public class AboutActivity extends MBaseActivity {
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_about);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
     }
 
     @Override
     protected void initData() {
-        animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in);
-        Animation animOut = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_out);
+
     }
 
     @Override
@@ -171,7 +162,7 @@ public class AboutActivity extends MBaseActivity {
 
     @Override
     protected void firstRequest() {
-        llContent.startAnimation(animIn);
+
     }
 
     void openIntent(String intentName, String address) {

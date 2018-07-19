@@ -18,8 +18,6 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,7 +28,6 @@ import com.monke.monkeybook.presenter.ImportBookPresenterImpl;
 import com.monke.monkeybook.presenter.impl.IImportBookPresenter;
 import com.monke.monkeybook.utils.FileUtil;
 import com.monke.monkeybook.utils.PremissionCheck;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.adapter.ImportBookAdapter;
 import com.monke.monkeybook.view.impl.IImportBookView;
 import com.monke.monkeybook.widget.modialog.MoProgressHUD;
@@ -64,9 +61,6 @@ public class ImportBookActivity extends MBaseActivity<IImportBookPresenter> impl
     private ImportBookAdapter importBookAdapter;
     private MenuItem menuItem;
 
-    private Animation animIn;
-    private Animation animOut;
-
     private MoProgressHUD moProgressHUD;
 
     @Override
@@ -77,15 +71,10 @@ public class ImportBookActivity extends MBaseActivity<IImportBookPresenter> impl
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_book_import);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
     }
 
     @Override
     protected void initData() {
-        animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in);
-        animOut = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_out);
 
         importBookAdapter = new ImportBookAdapter(count -> {
             if (menuItem != null) {
@@ -182,42 +171,18 @@ public class ImportBookActivity extends MBaseActivity<IImportBookPresenter> impl
                 }
             }
         });
-        animOut.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-
-            }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                ImportBookActivity.super.finish();
-                overridePendingTransition(0, 0);
-                isExiting = false;
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-
-            }
-        });
 
     }
 
     @Override
     protected void firstRequest() {
-        llContent.startAnimation(animIn);
-    }
 
-    private Boolean isExiting = false;
+    }
 
     @Override
     public void finish() {
-        if (!isExiting) {
-            if (moProgressHUD.isShow()) {
-                moProgressHUD.dismiss();
-            }
-            isExiting = true;
-            llContent.startAnimation(animOut);
+        if (moProgressHUD.isShow()) {
+            moProgressHUD.dismiss();
         }
     }
 

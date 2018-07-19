@@ -15,8 +15,6 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 
 import com.monke.monkeybook.R;
@@ -28,7 +26,6 @@ import com.monke.monkeybook.help.MyItemTouchHelpCallback;
 import com.monke.monkeybook.model.BookSourceManage;
 import com.monke.monkeybook.presenter.BookSourcePresenterImpl;
 import com.monke.monkeybook.presenter.impl.IBookSourcePresenter;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.adapter.BookSourceAdapter;
 import com.monke.monkeybook.view.impl.IBookSourceView;
 import com.monke.monkeybook.widget.modialog.MoProgressHUD;
@@ -61,7 +58,7 @@ public class BookSourceActivity extends MBaseActivity<IBookSourcePresenter> impl
 
     private String[] perms = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
     private boolean selectAll = true;
-    private Animation animIn;
+
     private BookSourceAdapter adapter;
     private MoProgressHUD moProgressHUD;
     private SearchView.SearchAutoComplete mSearchAutoComplete;
@@ -75,9 +72,6 @@ public class BookSourceActivity extends MBaseActivity<IBookSourcePresenter> impl
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_recycler_serach_vew);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
     }
 
     @Override
@@ -100,7 +94,7 @@ public class BookSourceActivity extends MBaseActivity<IBookSourcePresenter> impl
 
     @Override
     protected void initData() {
-        animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in);
+
     }
 
     private void initSearchView() {
@@ -182,7 +176,7 @@ public class BookSourceActivity extends MBaseActivity<IBookSourcePresenter> impl
 
     @Override
     protected void firstRequest() {
-        llContent.startAnimation(animIn);
+
     }
 
     @Override

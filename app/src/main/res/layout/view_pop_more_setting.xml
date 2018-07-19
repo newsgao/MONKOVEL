@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@color/background"
     android:orientation="vertical">
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:background="@drawable/bg_shadow_bottom" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -62,7 +57,7 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/ll_readBookImmersion"
+                android:id="@+id/llImmersionBar"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@color/background"
@@ -87,19 +82,18 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical"
                         android:layout_weight="1"
-                        android:text="@string/readBookImmersion"
+                        android:text="@string/immersion_status_bar"
                         android:textColor="@color/tv_text_default" />
 
                     <com.kyleduo.switchbutton.SwitchButton
-                        android:id="@+id/sb_readBookImmersion"
+                        android:id="@+id/sbImmersionBar"
                         android:layout_width="47dp"
                         android:layout_height="26dp"
                         android:layout_gravity="center_vertical"
-                        android:contentDescription="@string/readBookImmersion"
+                        android:contentDescription="@string/immersion_status_bar"
                         app:kswBackColor="@drawable/selector_switch_button"
                         app:kswThumbColor="@color/background" />
                 </LinearLayout>
-
             </LinearLayout>
 
             <LinearLayout

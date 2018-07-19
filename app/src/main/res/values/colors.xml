@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="black">#000000</color>
+    <color name="white">#ffffff</color>
+
+
     <color name="background">#f4f4f4</color>
     <color name="background_menu">#fcfcfc</color>
+    <color name="transparent">#00000000</color>
 
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorPrimary">#82A6F5</color>
+    <color name="colorPrimaryDark">#6f8ed2</color>
     <color name="colorAccent">#FF4081</color>
 
     <color name="btn_bg_press">#c4c4c4</color>
@@ -38,4 +43,6 @@
     <color name="bg_white">#FFFFFFFF</color>
     <!-- 分格线背景色 -->
     <color name="bg_divider_line">#FFD4D4D4</color>
+    <!--statusBarBackground-->
+    <color name="status_bar_bag">#64000000</color>
 </resources>

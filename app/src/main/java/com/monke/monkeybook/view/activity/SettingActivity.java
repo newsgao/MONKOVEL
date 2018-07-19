@@ -1,17 +1,13 @@
 package com.monke.monkeybook.view.activity;
 
-import android.preference.Preference;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 
 import com.monke.basemvplib.impl.IPresenter;
 import com.monke.monkeybook.R;
 import com.monke.monkeybook.base.MBaseActivity;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.fragment.SettingsFragment;
 
 import butterknife.BindView;
@@ -28,11 +24,6 @@ public class SettingActivity extends MBaseActivity {
     @BindView(R.id.ll_content)
     LinearLayout llContent;
 
-    private Animation animIn;
-    private Animation animOut;
-
-    private String bookPx;
-    private Preference immersionPreference;
 
     @Override
     protected IPresenter initInjector() {
@@ -49,21 +40,17 @@ public class SettingActivity extends MBaseActivity {
         getFragmentManager().beginTransaction()
                 .replace(R.id.settingsFrameLayout, settingsFragment)
                 .commit();
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
+
     }
 
     @Override
     protected void initData() {
-        animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in);
-        animOut = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_out);
+
     }
 
     @Override
     protected void firstRequest() {
-        llContent.startAnimation(animIn);
-        bookPx = preferences.getString(getString(R.string.pk_bookshelf_px), "0");
+
     }
 
     //设置ToolBar
@@ -97,5 +84,8 @@ public class SettingActivity extends MBaseActivity {
         super.onBackPressed();
     }
 
-    protected void immersionStatusBar(){recreate();}
+    @Override
+    public void initImmersionBar() {
+        super.initImmersionBar();
+    }
 }

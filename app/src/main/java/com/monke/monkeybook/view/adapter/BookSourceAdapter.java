@@ -2,6 +2,7 @@ package com.monke.monkeybook.view.adapter;
 
 import android.content.Intent;
 import android.graphics.PorterDuff;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,7 @@ import com.monke.monkeybook.BitIntentDataManager;
 import com.monke.monkeybook.R;
 import com.monke.monkeybook.bean.BookSourceBean;
 import com.monke.monkeybook.help.MyItemTouchHelpCallback;
+import com.monke.monkeybook.model.BookSourceManage;
 import com.monke.monkeybook.view.activity.BookSourceActivity;
 import com.monke.monkeybook.view.activity.SourceEditActivity;
 
@@ -27,7 +29,9 @@ import java.util.List;
 
 public class BookSourceAdapter extends RecyclerView.Adapter<BookSourceAdapter.MyViewHolder> {
     private List<BookSourceBean> dataList;
+    private List<BookSourceBean> allDataList;
     private BookSourceActivity activity;
+    private int index;
 
     private MyItemTouchHelpCallback.OnItemTouchCallbackListener itemTouchCallbackListener = new MyItemTouchHelpCallback.OnItemTouchCallbackListener() {
         @Override
@@ -62,6 +66,12 @@ public class BookSourceAdapter extends RecyclerView.Adapter<BookSourceAdapter.My
         activity.upDateSelectAll();
     }
 
+    private void allDataList(List<BookSourceBean> bookSourceBeanList) {
+        this.allDataList = bookSourceBeanList;
+        notifyDataSetChanged();
+        activity.upDateSelectAll();
+    }
+
     public List<BookSourceBean> getDataList() {
         return dataList;
     }
@@ -80,14 +90,15 @@ public class BookSourceAdapter extends RecyclerView.Adapter<BookSourceAdapter.My
         return itemTouchCallbackListener;
     }
 
+    @NonNull
     @Override
-    public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.adapter_book_source_item, parent, false);
         return new MyViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(MyViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
         holder.cbView.setText(dataList.get(position).getBookSourceName());
         holder.cbView.setChecked(dataList.get(position).getEnable());
         holder.cbView.setOnClickListener((View view) -> {
@@ -115,6 +126,32 @@ public class BookSourceAdapter extends RecyclerView.Adapter<BookSourceAdapter.My
             dataList.remove(position);
             notifyDataSetChanged();
         });
+        holder.topView.getDrawable().mutate();
+        holder.topView.getDrawable().setColorFilter(activity.getResources().getColor(R.color.tv_text_default), PorterDuff.Mode.SRC_ATOP);
+        holder.topView.setOnClickListener(view -> {
+            allDataList(BookSourceManage.getAllBookSource());
+
+            BookSourceBean moveData = dataList.get(position);
+            dataList.remove(position);
+            notifyItemInserted(0);
+            dataList.add(0,moveData);
+            notifyItemRemoved(position + 1);
+
+            if (dataList.size() != allDataList.size()){
+                for (int i = 0;i < allDataList.size();i++){
+                    if (moveData.equals(allDataList.get(i))){
+                        index = i;
+                        break;
+                    }
+                }
+                BookSourceBean moveDataA = allDataList.get(index);
+                allDataList.remove(index);
+                notifyItemInserted(0);
+                allDataList.add(0,moveDataA);
+                notifyItemRemoved(index + 1);
+            }
+            notifyDataSetChanged();
+        });
     }
 
     @Override
@@ -126,12 +163,14 @@ public class BookSourceAdapter extends RecyclerView.Adapter<BookSourceAdapter.My
         CheckBox cbView;
         ImageView editView;
         ImageView delView;
+        ImageView topView;
 
         MyViewHolder(View itemView) {
             super(itemView);
             cbView = itemView.findViewById(R.id.cb_book_source);
             editView = itemView.findViewById(R.id.iv_edit_source);
             delView = itemView.findViewById(R.id.iv_del_source);
+            topView = itemView.findViewById(R.id.iv_top_source);
         }
     }
 }

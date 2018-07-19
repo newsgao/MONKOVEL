@@ -13,8 +13,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -27,10 +25,9 @@ import com.monke.monkeybook.base.MBaseActivity;
 import com.monke.monkeybook.bean.MyFile;
 import com.monke.monkeybook.presenter.ImportBookPresenterImpl;
 import com.monke.monkeybook.presenter.impl.IImportBookPresenter;
-import com.monke.monkeybook.utils.StatusBarUtil;
-import com.monke.monkeybook.utils.fileselectorutil.EmptyFileFilter;
-import com.monke.monkeybook.utils.fileselectorutil.FileComparator;
-import com.monke.monkeybook.utils.fileselectorutil.SDCardScanner;
+import com.monke.monkeybook.utils.fileSelectorUtil.EmptyFileFilter;
+import com.monke.monkeybook.utils.fileSelectorUtil.FileComparator;
+import com.monke.monkeybook.utils.fileSelectorUtil.SDCardScanner;
 import com.monke.monkeybook.view.adapter.FileFolderListAdapter;
 import com.monke.monkeybook.view.impl.IImportBookView;
 import com.monke.monkeybook.widget.modialog.MoProgressHUD;
@@ -57,7 +54,6 @@ public class FileFolderActivity extends MBaseActivity<IImportBookPresenter> impl
 	@BindView(R.id.ll_content)
 	RelativeLayout llContent;
 
-	private Animation animIn;
 	private MoProgressHUD moProgressHUD;
 
 	private Menu aMenu;//获取菜单
@@ -65,15 +61,12 @@ public class FileFolderActivity extends MBaseActivity<IImportBookPresenter> impl
 	@Override
 	protected void onCreateActivity() {
 		setContentView(R.layout.activity_file_folder);
-		if (preferences.getBoolean("immersionStatusBar", false)) {
-			StatusBarUtil.setFitsSystem(this);
-		}
 	}
 
 
 	@Override
 	protected void initData() {
-		animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in);
+
 	}
 
 	@Override
@@ -271,7 +264,7 @@ public class FileFolderActivity extends MBaseActivity<IImportBookPresenter> impl
 
     @Override
 	protected void firstRequest() {
-		llContent.startAnimation(animIn);
+
 	}
 
 

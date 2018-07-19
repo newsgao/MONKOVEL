@@ -2,7 +2,6 @@
 package com.monke.monkeybook.view.activity;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.LinearLayoutManager;
@@ -19,7 +18,6 @@ import com.monke.monkeybook.bean.SearchBookBean;
 import com.monke.monkeybook.presenter.BookDetailPresenterImpl;
 import com.monke.monkeybook.presenter.ChoiceBookPresenterImpl;
 import com.monke.monkeybook.presenter.impl.IChoiceBookPresenter;
-import com.monke.monkeybook.utils.StatusBarUtil;
 import com.monke.monkeybook.view.adapter.ChoiceBookAdapter;
 import com.monke.monkeybook.view.impl.IChoiceBookView;
 import com.monke.monkeybook.widget.refreshview.OnLoadMoreListener;
@@ -39,14 +37,6 @@ public class ChoiceBookActivity extends MBaseActivity<IChoiceBookPresenter> impl
 
     private ChoiceBookAdapter searchBookAdapter;
 
-    public static void startChoiceBookActivity(Context context, String title, String url, String tag) {
-        Intent intent = new Intent(context, ChoiceBookActivity.class);
-        intent.putExtra("url", url);
-        intent.putExtra("title", title);
-        intent.putExtra("tag", tag);
-        context.startActivity(intent);
-    }
-
     @Override
     protected IChoiceBookPresenter initInjector() {
         return new ChoiceBookPresenterImpl(getIntent());
@@ -55,14 +45,21 @@ public class ChoiceBookActivity extends MBaseActivity<IChoiceBookPresenter> impl
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_book_choice);
-        if (preferences.getBoolean("immersionStatusBar", false)) {
-            StatusBarUtil.setFitsSystem(this);
-        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     @Override
     protected void initData() {
-        searchBookAdapter = new ChoiceBookAdapter();
+        searchBookAdapter = new ChoiceBookAdapter(this);
     }
 
     @SuppressLint("InflateParams")

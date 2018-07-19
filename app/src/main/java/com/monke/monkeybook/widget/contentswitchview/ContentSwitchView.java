@@ -4,14 +4,13 @@ import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Paint;
 import android.os.Build;
-import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
-import android.text.Layout;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -19,11 +18,9 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 
-import com.monke.monkeybook.MApplication;
 import com.monke.monkeybook.help.ReadBookControl;
 import com.monke.monkeybook.service.ReadAloudService;
 import com.monke.monkeybook.utils.DensityUtil;
-import com.monke.monkeybook.utils.StatusBarUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +37,8 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     private Boolean isMoving = false;
     private Boolean readAloud = false;
 
-    private Activity activity;
-
+    private Snackbar snackbar;
+    private int speakStart;
     private BookContentView durPageView;
     private List<BookContentView> viewContents;
     private ReadBookControl readBookControl;
@@ -62,7 +59,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         @Override
         public void onGlobalLayout() {
             int height = durPageView.getTvContent().getMeasuredHeight();
-            Layout layout = durPageView.getTvContent().getLayout();
             if (height > 0) {
                 if (loadDataListener != null && durHeight != height) {
                     durHeight = height;
@@ -99,7 +95,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         scrollX = DensityUtil.dp2px(getContext(), 30f);
         durPageView = new BookContentView(getContext());
         durPageView.setReadBookControl(readBookControl);
-        activity = (Activity)getContext();
 
         viewContents = new ArrayList<>();
         viewContents.add(durPageView);
@@ -312,8 +307,26 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         }
     }
 
+    /**
+     * 翻上页是否带动画
+     */
+    private void gotoPrePage(Boolean anim) {
+        if (state == PRE_AND_NEXT || state == ONLY_PRE) {
+            if (anim) {
+                initMoveSuccessAnim(viewContents.get(0), 0);
+            } else {
+                gotoPrePage();
+            }
+        } else {
+            noPre();
+        }
+    }
+
+    /**
+     * 上一页
+     */
     private void gotoPrePage() {
-        //翻向前一页
+        durPageView.resetContent();
         durPageView = viewContents.get(0);
         if (state == PRE_AND_NEXT) {
             ContentSwitchView.this.removeView(viewContents.get(viewContents.size() - 1));
@@ -327,12 +340,29 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             else state = PRE_AND_NEXT;
         }
         afterOpenPage();
-        SharedPreferences preference = PreferenceManager.getDefaultSharedPreferences(MApplication.getInstance());
-        StatusBarUtil.showNavigationBar(activity,!preference.getBoolean("hide_navigation_bar", false));
     }
 
+    /**
+     * 翻下页是否带动画
+     */
+    private void gotoNextPage(Boolean anim) {
+        if (state == PRE_AND_NEXT || state == ONLY_NEXT) {
+            if (anim) {
+                int tempIndex = (state == PRE_AND_NEXT ? 1 : 0);
+                initMoveSuccessAnim(viewContents.get(tempIndex), -getWidth());
+            } else {
+                gotoNextPage();
+            }
+        } else {
+            noNext();
+        }
+    }
+
+    /**
+     * 下一页
+     */
     private void gotoNextPage() {
-        //翻向后一页
+        durPageView.resetContent();
         if (state == ONLY_NEXT) {
             durPageView = viewContents.get(1);
         } else {
@@ -350,11 +380,13 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             else state = PRE_AND_NEXT;
         }
         afterOpenPage();
-        SharedPreferences preference = PreferenceManager.getDefaultSharedPreferences(MApplication.getInstance());
-        StatusBarUtil.showNavigationBar(activity,!preference.getBoolean("hide_navigation_bar", false));
     }
 
+    /**
+     * 翻页完成
+     */
     private void afterOpenPage() {
+        speakStart = 0;
         if (loadDataListener != null) {
             loadDataListener.updateProgress(durPageView.getDurChapterIndex(), durPageView.getDurPageIndex());
             loadDataListener.setHpbReadProgress(durPageView.getDurPageIndex(), durPageView.getPageAll());
@@ -473,43 +505,13 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         }
     }
 
-    /**
-     * 翻下页
-     */
-    private void gotoNextPage(Boolean anim) {
-        if (state == PRE_AND_NEXT || state == ONLY_NEXT) {
-            if (anim) {
-                int tempIndex = (state == PRE_AND_NEXT ? 1 : 0);
-                initMoveSuccessAnim(viewContents.get(tempIndex), -getWidth());
-            } else {
-                gotoNextPage();
-            }
-        } else {
-            noNext();
-        }
-    }
-
-    /**
-     * 翻上页
-     */
-    private void gotoPrePage(Boolean anim) {
-        if (state == PRE_AND_NEXT || state == ONLY_PRE) {
-            if (anim) {
-                initMoveSuccessAnim(viewContents.get(0), 0);
-            } else {
-                gotoPrePage();
-            }
-        } else {
-            noPre();
-        }
-    }
-
     @Override
     public void setDataFinish(BookContentView bookContentView, int durChapterIndex, int chapterAll, int durPageIndex, int pageAll, int fromPageIndex) {
         if (null != getDurContentView() && bookContentView == getDurContentView() && chapterAll > 0 && pageAll > 0) {
             readAloud();
             loadDataListener.setHpbReadProgress(durPageView.getDurPageIndex(), durPageView.getPageAll());
             updateOtherPage(durChapterIndex, chapterAll, durPageIndex, pageAll);
+            loadDataListener.curPageFinish();
         }
     }
 
@@ -524,7 +526,9 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
      */
     public void readAloudStart() {
         readAloud = true;
+        speakStart = 0;
         loadDataListener.readAloud(durPageView.getContent());
+
     }
 
     /**
@@ -539,6 +543,30 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
      */
     public void readAloudStop() {
         readAloud = false;
+        durPageView.resetContent();
+    }
+
+    /**
+     * 开始朗读speakIndex段
+     */
+    public void speakStart(int speakIndex) {
+        if (durPageView.getContent() == null | speakStart > durPageView.getContent().length()) {
+            return;
+        }
+        if (speakIndex == 0) {
+            if (durPageView.getContent().startsWith("\u3000")) {
+                speakStart = 2;
+            }
+        }
+        int speakEnd = durPageView.getContent().indexOf("\n", speakStart);
+        if (speakEnd == -1) {
+            speakEnd = durPageView.getContent().length();
+        }
+        SpannableString ssContent = new SpannableString(durPageView.getContent());
+        ssContent.setSpan(new UnderlineSpan(), speakStart, speakEnd,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        durPageView.upSpeak(ssContent);
+        speakStart = speakEnd + 3;
     }
 
     public void setLoadDataListener(LoadDataListener loadDataListener) {
@@ -553,18 +581,16 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
      * 没有上一页
      */
     private void noPre() {
-        StatusBarUtil.showNavigationBar(activity,true);
-        Snackbar.make(this, "没有上一页", Snackbar.LENGTH_SHORT)
-                .show();
+        snackbar = Snackbar.make(this, "没有上一页", Snackbar.LENGTH_SHORT);
+        snackbar.show();
     }
 
     /**
      * 没有下一页
      */
     private void noNext() {
-        StatusBarUtil.showNavigationBar(activity,true);
-        Snackbar.make(this, "没有下一页", Snackbar.LENGTH_SHORT)
-                .show();
+        snackbar = Snackbar.make(this, "没有下一页", Snackbar.LENGTH_SHORT);
+        snackbar.show();
         ReadAloudService.stop(getContext());
     }
 
@@ -675,6 +701,8 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         void readAloud(String content);
 
         void openChapterList();
+
+        void curPageFinish();
     }
 
 }
